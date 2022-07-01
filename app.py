@@ -1,4 +1,5 @@
 from flask import Flask, flash,render_template,request,redirect
+from pathy import Bucket
 from spacy import load
 from werkzeug.utils import secure_filename
 import os 
@@ -61,11 +62,11 @@ def read_pdf(full_filename):
     if len(files)==0:
         return False
     else:
-        buff_file=open(os.path.join(app.config['UPLOAD_FOLDER'],"buff_file.text"),"w")
+        buff_file=open(os.path.join(app.config['UPLOAD_FOLDER'],"buff_file.txt"),"w")
         for page in extract_text_by_page(full_filename):
             buff_file.write(page)
         buff_file.close()
-            
+        upload_to_s3()
         return True
 
 
@@ -95,8 +96,29 @@ def extract_text_by_page(pdf_path):
             # close open handles 
             converter.close() 
             fake_file_handle.close() 
-            pass
+
+
+def upload_to_s3():
+    s3_client = boto3.client('s3', aws_access_key_id=AWSAccessKeyId,
+                      aws_secret_access_key=AWSSecretKey)
+    s3_resource=boto3.resource('s3', aws_access_key_id=AWSAccessKeyId,
+                      aws_secret_access_key=AWSSecretKey)
     
+    try:
+        # code to delete s3 objects
+        bucket=s3_resource.Bucket('keyrank-bucket')
+        bucket.objects.delete()
+
+        #code to upload a file to s3 object
+        s3_client.upload_file(os.path.join(app.config['UPLOAD_FOLDER'],"buff_file.txt"), 'keyrank-bucket', 'buff_file')
+        print("Upload Successful")
+    except FileNotFoundError:
+        print("The file was not found")
+    except NoCredentialsError:
+        print("Credentials not available")
+        
+
+
 if __name__ == '__main__':
     app.run(debug = True)
 
