@@ -1,4 +1,3 @@
-
 from flask import Flask, flash,render_template,request,redirect
 from spacy import load
 from werkzeug.utils import secure_filename
